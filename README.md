@@ -28,8 +28,7 @@ A modern, customized chat interface specifically designed for Dify applications.
 
 1. **Clone the repository**
    ```bash
-   git clone <your-repo-url>
-   cd dify-ui
+   git clone <repo-url>
    ```
 
 2. **Install dependencies**

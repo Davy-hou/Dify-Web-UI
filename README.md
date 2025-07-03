@@ -2,13 +2,7 @@
 
 A modern, customized chat interface specifically designed for Dify applications. Built with Next.js, this UI provides an enhanced user experience for interacting with your Dify AI applications with advanced features like knowledge retrieval, streaming responses, and multi-app management.
 
-## 📸 Screenshots
-
-### Main Chat Interface
-![Dify UI Chat Interface](home.png)
-
-### App Configuration
-![App Configuration Dialog](app-config.png)
+![Dify UI Chat Interface](show.png)
 
 ## ✨ Features
 
@@ -50,12 +44,15 @@ A modern, customized chat interface specifically designed for Dify applications.
 3. Type your message and press Enter or click Send
 4. Enjoy real-time streaming responses from your Dify application!
 
+![Dify UI Chat Interface](home.png)
+
 ### App Management
 - Click the settings icon to manage your Dify applications
 - Add new Dify applications with their API tokens
 - Switch between different Dify apps using the dropdown selector
 - Each app uses its own API token for secure, isolated conversations
 
+![App Configuration Dialog](app-config.png)
 ## 🛠 Development
 
 ### Project Structure

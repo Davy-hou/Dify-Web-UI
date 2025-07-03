@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Knowledge Retrieval Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .input-section {
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            width: 70%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-left: 10px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .messages {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            min-height: 200px;
+            background: #fafafa;
+            white-space: pre-wrap;
+        }
+        .knowledge-sources {
+            margin-top: 15px;
+            padding: 15px;
+            background: #e8f4f8;
+            border-radius: 4px;
+            border-left: 4px solid #007bff;
+        }
+        .knowledge-source {
+            margin-bottom: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        .source-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .source-content {
+            color: #666;
+            margin-bottom: 5px;
+        }
+        .source-score {
+            font-size: 12px;
+            color: #888;
+        }
+        .loading {
+            color: #666;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Knowledge Retrieval 功能测试</h1>
+        
+        <div class="input-section">
+            <input type="text" id="queryInput" placeholder="输入查询内容..." value="黄牛">
+            <button onclick="testKnowledge()">测试 Knowledge Retrieval</button>
+        </div>
+        
+        <div id="messages" class="messages">
+            点击按钮开始测试...
+        </div>
+    </div>
+
+    <script>
+        async function testKnowledge() {
+            const query = document.getElementById('queryInput').value;
+            const messagesDiv = document.getElementById('messages');
+            
+            if (!query.trim()) {
+                alert('请输入查询内容');
+                return;
+            }
+            
+            messagesDiv.innerHTML = '<div class="loading">正在测试...</div>';
+            
+            try {
+                const response = await fetch('/api/test-knowledge', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ query: query })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+                let content = '';
+                let knowledgeSources = null;
+                
+                messagesDiv.innerHTML = '';
+                
+                while (true) {
+                    const result = await reader.read();
+                    if (result.done) break;
+                    
+                    const chunk = decoder.decode(result.value);
+                    buffer += chunk;
+                    
+                    const events = buffer.split('\n\n');
+                    buffer = events.pop() || '';
+                    
+                    for (const event of events) {
+                        if (!event.trim()) continue;
+                        
+                        const lines = event.split('\n');
+                        for (const line of lines) {
+                            if (line.trim().startsWith('data: ')) {
+                                try {
+                                    const jsonStr = line.trim().slice(5);
+                                    if (!jsonStr) continue;
+                                    
+                                    const data = JSON.parse(jsonStr);
+                                    console.log('Received data:', data);
+                                    
+                                    if (data.content) {
+                                        content += data.content;
+                                        updateDisplay(content, knowledgeSources);
+                                    }
+                                    
+                                    if (data.knowledgeSources) {
+                                        knowledgeSources = data.knowledgeSources;
+                                        console.log('Knowledge sources received:', knowledgeSources);
+                                        updateDisplay(content, knowledgeSources);
+                                    }
+                                    
+                                    if (data.end) {
+                                        console.log('Stream ended');
+                                        break;
+                                    }
+                                } catch (e) {
+                                    console.error('Error parsing JSON:', e, 'Line:', line);
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                messagesDiv.innerHTML = `<div style="color: red;">错误: ${error.message}</div>`;
+            }
+        }
+        
+        function updateDisplay(content, knowledgeSources) {
+            const messagesDiv = document.getElementById('messages');
+            let html = `<div>${content}</div>`;
+            
+            if (knowledgeSources && knowledgeSources.length > 0) {
+                html += `
+                    <div class="knowledge-sources">
+                        <div style="font-weight: bold; margin-bottom: 10px;">
+                            📚 知识库来源 (${knowledgeSources.length})
+                        </div>
+                `;
+                
+                knowledgeSources.forEach((source, index) => {
+                    html += `
+                        <div class="knowledge-source">
+                            <div class="source-title">${source.title || `来源 ${index + 1}`}</div>
+                            <div class="source-content">${source.content}</div>
+                            ${source.score ? `<div class="source-score">相关度: ${(source.score * 100).toFixed(1)}%</div>` : ''}
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+            }
+            
+            messagesDiv.innerHTML = html;
+        }
+        
+        // 允许按回车键提交
+        document.getElementById('queryInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                testKnowledge();
+            }
+        });
+    </script>
+</body>
+</html>
